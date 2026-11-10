@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Customer Management System</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --primary: #38bdf8;
+            --primary-hover: #0284c7;
+            --border: #334155;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+        }
+
+        * { box-sizing: border-box; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 40px 20px; }
+        .container { max-width: 950px; margin: 0 auto; background: var(--card-bg); padding: 35px; border-radius: 16px; border: 1px solid var(--border); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5); }
+        
+        .header { margin-bottom: 30px; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
+        .header h1 { margin: 0 0 8px 0; color: var(--primary); font-size: 28px; font-weight: 700; }
+        .header p { margin: 0; color: var(--text-sub); font-size: 14px; }
+
+        .form-grid { display: grid; grid-template-columns: 2fr 2fr 1.5fr 1.2fr auto; gap: 12px; margin-bottom: 25px; align-items: center; }
+        input, select, button { padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; background: #0f172a; color: var(--text-main); font-size: 14px; outline: none; transition: all 0.2s; }
+        input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2); }
+        
+        button { background: var(--primary); color: #0f172a; font-weight: 700; border: none; cursor: pointer; }
+        button:hover { background: var(--primary-hover); color: white; }
+
+        .table-container { overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
+        th { background: #0f172a; color: var(--primary); padding: 14px; font-weight: 600; border-bottom: 1px solid var(--border); }
+        td { padding: 14px; border-bottom: 1px solid var(--border); color: #e2e8f0; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background-color: rgba(255, 255, 255, 0.02); }
+
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-block; }
+        .badge-lead { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4); }
+        .badge-customer { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); }
+
+        .btn-delete { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); padding: 6px 12px; font-size: 12px; border-radius: 6px; }
+        .btn-delete:hover { background: #dc2626; color: white; }
+
+        .status-bar { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; color: var(--text-sub); font-size: 13px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>Smart Customer Management System</h1>
+        <p>Software Engineering PBL Project Prototype • Input Validation & Persistent Storage</p>
+    </div>
+
+    <!-- Customer Input Form -->
+    <div class="form-grid">
+        <input type="text" id="custName" placeholder="Full Name (e.g. Priya Yadav)" maxlength="40">
+        <input type="email" id="custEmail" placeholder="Email Address (e.g. priya@gmail.com)">
+        <input type="text" id="custPhone" placeholder="10-Digit Mobile No." maxlength="10">
+        <select id="custStatus">
+            <option value="Lead">Lead</option>
+            <option value="Customer">Customer</option>
+        </select>
+        <button onclick="addCustomer()">+ Add Entry</button>
+    </div>
+
+    <!-- Data Table -->
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="customerTableBody"></tbody>
+        </table>
+    </div>
+
+    <div class="status-bar">
+        <span id="totalRecords">Total Records: 0</span>
+        <span>Storage Engine: HTML5 Web LocalStorage</span>
+    </div>
+</div>
+
+<script>
+    // 1. Storage Array Setup (Loads from LocalStorage if available)
+    let customers = JSON.parse(localStorage.getItem('cms_validated_data')) || [
+        { id: 101, name: "Rahul Sharma", email: "rahul.sharma@gmail.com", phone: "9876543210", status: "Lead" },
+        { id: 102, name: "Priya Yadav", email: "priya.yadav@gmail.com", phone: "9123456789", status: "Customer" }
+    ];
+
+    // 2. Function to Save Data to Hard Drive and Render Rows on UI
+    function saveAndRender() {
+        localStorage.setItem('cms_validated_data', JSON.stringify(customers));
+        const tbody = document.getElementById('customerTableBody');
+        tbody.innerHTML = '';
+
+        customers.forEach((c) => {
+            const badgeClass = c.status === 'Customer' ? 'badge-customer' : 'badge-lead';
+            tbody.innerHTML += `
+                <tr>
+                    <td>#${c.id}</td>
+                    <td><strong>${escapeHtml(c.name)}</strong></td>
+                    <td>${escapeHtml(c.email)}</td>
+                    <td>+91 ${escapeHtml(c.phone)}</td>
+                    <td><span class="badge ${badgeClass}">${c.status}</span></td>
+                    <td><button class="btn-delete" onclick="deleteCustomer(${c.id})">Delete</button></td>
+                </tr>`;
+        });
+
+        document.getElementById('totalRecords').innerText = `Total Records: ${customers.length}`;
+    }
+
+    // 3. Add Customer Function with Strict Validation Rules
+    function addCustomer() {
+        const name = document.getElementById('custName').value.trim();
+        const email = document.getElementById('custEmail').value.trim();
+        const phone = document.getElementById('custPhone').value.trim();
+        const status = document.getElementById('custStatus').value;
+
+        // Validation Rule 1: Full Name Check (Alphabet & spaces only, min 2 chars)
+        const nameRegex = /^[a-zA-Z\s]{2,50}$/;
+        if (!nameRegex.test(name)) {
+            alert('Error: Enter a valid Full Name (only alphabets and spaces, e.g., Priya Yadav).');
+            return;
+        }
+
+        // Validation Rule 2: Email Pattern Check (Must have @ and domain like .com)
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            alert('Error: Enter a valid Email Address (e.g., name@domain.com).');
+            return;
+        }
+
+        // Validation Rule 3: Phone Check (Exactly 10 digits starting with 6, 7, 8, or 9)
+        const phoneRegex = /^[6-9]\d{9}$/;
+        if (!phoneRegex.test(phone)) {
+            alert('Error: Enter a valid 10-digit Indian Mobile Number (starting with 6, 7, 8, or 9).');
+            return;
+        }
+
+        // Generate Auto Incremental ID (#101, #102...)
+        const newId = customers.length > 0 ? Math.max(...customers.map(c => c.id)) + 1 : 101;
+        
+        // Push new validated object into array
+        customers.push({ id: newId, name, email, phone, status });
+
+        // Clear input boxes
+        document.getElementById('custName').value = '';
+        document.getElementById('custEmail').value = '';
+        document.getElementById('custPhone').value = '';
+
+        // Update storage & UI
+        saveAndRender();
+    }
+
+    // 4. Delete Entry Function
+    function deleteCustomer(id) {
+        if (confirm('Are you sure you want to delete this customer record?')) {
+            customers = customers.filter(c => c.id !== id);
+            saveAndRender();
+        }
+    }
+
+    // Prevent HTML/Script Injection Security
+    function escapeHtml(text) {
+        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    // First load execution
+    saveAndRender();
+</script>
+
+</body>
+</html>
